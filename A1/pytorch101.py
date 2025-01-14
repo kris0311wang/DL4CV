@@ -633,8 +633,16 @@ def mm_on_gpu(x: Tensor, w: Tensor) -> Tensor:
     #                      TODO: Implement this function                     #
     ##########################################################################
     # Replace "pass" statement with your code
-    pass
-    ##########################################################################
+    # 将张量移动到 GPU
+    x_gpu = x.cuda()
+    w_gpu = w.cuda()
+    
+    # 在 GPU 上进行矩阵乘法
+    y_gpu = x_gpu.mm(w_gpu)
+    
+    # 将结果移动回 CPU
+    y_cpu = y_gpu.to('cpu') 
+    y=y_cpu
     #                            END OF YOUR CODE                            #
     ##########################################################################
     return y
