@@ -60,7 +60,11 @@ def compute_distances_two_loops(x_train: torch.Tensor, x_test: torch.Tensor):
     # functions from torch.nn or torch.nn.functional.                        #
     ##########################################################################
     # Replace "pass" statement with your code
-    pass
+    for i in range(num_train):
+        train_data=x_train[i].flatten()
+        for j in range(num_test):
+            test_data=x_test[j].flatten()
+            dists[i,j]=torch.tensor([(train_data[ii]-test_data[ii])**2 for ii in range(train_data.shape[0])]).sum()
     ##########################################################################
     #                           END OF YOUR CODE                             #
     ##########################################################################
