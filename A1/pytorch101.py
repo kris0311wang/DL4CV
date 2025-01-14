@@ -546,7 +546,7 @@ def batched_matrix_multiply_noloop(x: Tensor, y: Tensor) -> Tensor:
             of matrix multiplication between x[i] of shape (N, M) and y[i] of
             shape (M, P). The output z should have the same dtype as x.
     """
-    z = None
+    z = None 
     ###########################################################################
     #                      TODO: Implement this function                      #
     ###########################################################################
