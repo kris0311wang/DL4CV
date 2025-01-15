@@ -1,5 +1,9 @@
 # UMich-EECS-498-007-598-005 Solutions
-My personal solutions to the assignments of the online course "UMich EECS 498-007 / 598-005: Deep Learning for Computer Vision."
+My personal solutions to the assignments of the online course "UMich EECS 498-007 / 598-005: Deep Learning for Computer Vision."(2019)
+
+[Course Website](https://web.eecs.umich.edu/~justincj/teaching/eecs498/WI2022/)
+
+[Lecture Video(Youtube)](https://www.youtube.com/playlist?list=PL5-TkQAfAZFbzxjBHtzdVCWE0Zbhomg7r)
 
 ## Installation and Environment
 
