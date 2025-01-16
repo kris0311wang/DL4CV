@@ -586,7 +586,10 @@ def normalize_columns(x: Tensor) -> Tensor:
     #                      TODO: Implement this function                     #
     ##########################################################################
     # Replace "pass" statement with your code
-    pass
+    mean=x.mean()
+    sub=x-mean
+    std=sub.std()
+    y=sub/std
     ##########################################################################
     #                            END OF YOUR CODE                            #
     ##########################################################################
