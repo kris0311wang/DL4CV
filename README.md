@@ -7,13 +7,14 @@ My personal solutions to the assignments of the online course "UMich EECS 498-00
 
 ## Installation and Environment
 
-This repository is designed to run in a local environment with the following dependencies:
+My local environment is listed below:
 -	Python 3.12.3
 -	PyTorch 2.5.1
 -	CUDA 12.4 (for GPU acceleration)
--	Jupyter Notebook
+
+For convenience, I uploaded the assignment folder to my Google Drive and run _jupyter notebook_ files on Google Colab.
  
 ## A1 - PyTorch101 and KNN
--	Focuses on introducing PyTorch and implementing a K-Nearest Neighbors (KNN) classifier.
--	**Modifications**: The original assignment included Google Colab instructions. I have adapted all code to run locally in Jupyter Notebook for better compatibility and performance.
 
+- **PyTorch 101**: An introduction to Python 3 and basic PyTorch concepts and operations.
+- **KNN**: Implementation of a **K-Nearest-Neighbor** classifier using the **CIFAR-10** dataset as a benchmark.
