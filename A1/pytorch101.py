@@ -586,10 +586,11 @@ def normalize_columns(x: Tensor) -> Tensor:
     #                      TODO: Implement this function                     #
     ##########################################################################
     # Replace "pass" statement with your code
-    mean=x.mean()
-    sub=x-mean
-    std=sub.std()
-    y=sub/std
+    for i in range(x.shape[1]):
+        col=x[:,i]
+        mean=col.sum()/x.shape[0]
+        std=((col-mean)**2).sum()/x.shape[0]
+        y[:,i]=(col-mean)/std
     ##########################################################################
     #                            END OF YOUR CODE                            #
     ##########################################################################
