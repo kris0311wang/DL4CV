@@ -163,10 +163,21 @@ def compute_distances_no_loops(x_train: torch.Tensor, x_test: torch.Tensor):
     # HINT: Try to formulate the Euclidean distance using two broadcast sums #
     #       and a matrix multiply.                                           #
     ##########################################################################
-    # Replace "pass" statement with your code
-    reduced_dims=tuple(range(2,x_test.dim()+1))
-    dists=((x_train.unsqueeze(dim=1).sub(x_test.unsqueeze(dim=0)))**2).sum(dim=reduced_dims)#Expand the tensor and then exploit the broadcast mechanism
-    print(dists.shape)
+    # 1) flatten and get [N, C, H, W] -> [N, D], D = C*H*W
+    x_train_flat = x_train.reshape(x_train.shape[0], -1)
+    x_test_flat  = x_test.reshape(x_test.shape[0], -1)
+
+    # 2) calculate squared sum of each picture 
+    #    x_train_sq: [N, 1], x_test_sq: [M]
+    x_train_sq = (x_train_flat**2).sum(dim=1, keepdim=True)  # shape [N,1]
+    x_test_sq  = (x_test_flat **2).sum(dim=1)                # shape [M]
+
+    # 3)  (x_train_flat) · (x_test_flat)ᵀ
+    cross = x_train_flat @ x_test_flat.transpose(0, 1)  # shape [N,M]
+
+    # 4)   ∥x - y∥² = ∥x∥² - 2 x·y + ∥y∥²
+    dists = x_train_sq - 2 * cross + x_test_sq  # broadcast and get [N, M]
+    #print(dists.shape)
     ##########################################################################
     #                           END OF YOUR CODE                             #
     ##########################################################################
@@ -202,6 +213,7 @@ def predict_labels(dists: torch.Tensor, y_train: torch.Tensor, k: int = 1):
     """
     num_train, num_test = dists.shape
     y_pred = torch.zeros(num_test, dtype=torch.int64)
+    dists=dists
     ##########################################################################
     # TODO: Implement this function. You may use an explicit loop over the   #
     # test samples.                                                          #
@@ -211,7 +223,7 @@ def predict_labels(dists: torch.Tensor, y_train: torch.Tensor, k: int = 1):
     # Replace "pass" statement with your code
     for i in range(num_test):
         values,candidate_indices=dists[:,i].topk(k,largest=False)
-        print(candidate_indices)
+        #print(candidate_indices)
         votes={}
         for j in candidate_indices:
             now=int(y_train[j])
@@ -219,7 +231,7 @@ def predict_labels(dists: torch.Tensor, y_train: torch.Tensor, k: int = 1):
                 votes[now]+=1
             else:
                 votes[now]=1
-        print(votes)
+        #print(votes)
         max_vote=0
         winner=0
         for j in votes:
@@ -229,8 +241,9 @@ def predict_labels(dists: torch.Tensor, y_train: torch.Tensor, k: int = 1):
             elif votes[j]==max_vote:
                 winner=min(winner,j)
         y_pred[i]=winner
+    y_pred=y_pred
                 
-    print(y_pred)
+    #print(y_pred)
     ##########################################################################
     #                           END OF YOUR CODE                             #
     ##########################################################################
@@ -355,6 +368,8 @@ def knn_cross_validate(
     ##########################################################################
     # Replace "pass" statement with your code
         # First we divide the training data into num_folds equally-sized folds.
+    x_train
+    y_train
     chunks_train = x_train.chunk(num_folds)
     chunks_label = y_train.chunk(num_folds)
 
@@ -372,7 +387,7 @@ def knn_cross_validate(
         # Initialize classifier
         temp_knn = KnnClassifier(temp_train_x, temp_train_y)
 
-        for k in k_choices:
+        for k in tqdm(k_choices, desc=f"Processing fold {i+1}/{num_folds}", leave=False, unit="k"):
             # Check accuracy and store it
             accuracy = temp_knn.check_accuracy(temp_test_x, temp_test_y, k=k, quiet=True)
             k_to_accuracies[k].append(accuracy)
@@ -425,7 +440,10 @@ def knn_get_best_k(k_to_accuracies: Dict[int, List]):
     # the value of k that has the highest mean accuracy accross all folds.   #
     ##########################################################################
     # Replace "pass" statement with your code
-    pass
+    best_acc=0
+    for i in k_to_accuracies.items():
+        if sum(i[1])>best_acc or sum(i[1])==best_acc and i[0]<best_k:
+            best_k,best_acc=i[0],sum(i[1])
     ##########################################################################
     #                           END OF YOUR CODE                             #
     ##########################################################################
