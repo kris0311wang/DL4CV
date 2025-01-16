@@ -590,7 +590,6 @@ def normalize_columns(x: Tensor) -> Tensor:
     mean=x.sum(dim=0)/x.shape[0]
     std=((x**2).sum(dim=0)/(x.shape[0]-1))-mean**2*x.shape[0]/(x.shape[0]-1)
     std=std**0.5
-    print(mean,std,x-mean)
     y=(x-mean)/std
     ##########################################################################
     #                            END OF YOUR CODE                            #
