@@ -586,11 +586,12 @@ def normalize_columns(x: Tensor) -> Tensor:
     #                      TODO: Implement this function                     #
     ##########################################################################
     # Replace "pass" statement with your code
-    for i in range(x.shape[1]):
-        col=x[:,i]
-        mean=col.sum()/x.shape[0]
-        std=((col-mean)**2).sum()/x.shape[0]
-        y[:,i]=(col-mean)/std
+    y=torch.zeros_like(x,dtype=x.dtype)
+    mean=x.sum(dim=0)/x.shape[0]
+    std=((x**2).sum(dim=0)/(x.shape[0]-1))-mean**2*x.shape[0]/(x.shape[0]-1)
+    std=std**0.5
+    print(mean,std,x-mean)
+    y=(x-mean)/std
     ##########################################################################
     #                            END OF YOUR CODE                            #
     ##########################################################################
