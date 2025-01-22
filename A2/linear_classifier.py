@@ -149,13 +149,13 @@ def svm_loss_naive(
     dW = torch.zeros_like(W)  # initialize the gradient as zero
 
     # compute the loss and the gradient
-    num_classes = W.shape[1]
-    num_train = X.shape[0]
+    num_classes = W.shape[1]#C
+    num_train = X.shape[0]#N
     loss = 0.0
-    for i in range(num_train):
-        scores = W.t().mv(X[i])
+    for i in range(num_train):# for every training example
+        scores = W.t().mv(X[i])#scores is a (C,) tensor
         correct_class_score = scores[y[i]]
-        for j in range(num_classes):
+        for j in range(num_classes):# for every class
             if j == y[i]:
                 continue
             margin = scores[j] - correct_class_score + 1  # note delta = 1
@@ -169,7 +169,8 @@ def svm_loss_naive(
                 # at the same time that the loss is being computed.                   #
                 #######################################################################
                 # Replace "pass" statement with your code
-                pass
+                dW[:,j]+=X[i,:].t()#matrix derivative of scores[j]
+                dW[:,y[i]]-=X[i,:].t()#matrix derivative of correct_class_score
                 #######################################################################
                 #                       END OF YOUR CODE                              #
                 #######################################################################
@@ -187,7 +188,8 @@ def svm_loss_naive(
     # and add it to dW. (part 2)                                                #
     #############################################################################
     # Replace "pass" statement with your code
-    pass
+    dW=dW/num_train#first we need to average the gradient
+    dW+=2*reg*W#then we add the regularization term because the dW has already changed
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
