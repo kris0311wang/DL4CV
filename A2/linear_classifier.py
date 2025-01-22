@@ -500,7 +500,6 @@ def softmax_loss_naive(
     # Initialize the loss and gradient to zero.
     loss = 0.0
     dW = torch.zeros_like(W)
-
     #############################################################################
     # TODO: Compute the softmax loss and its gradient using explicit loops.     #
     # Store the loss in loss and the gradient in dW. If you are not careful     #
@@ -509,16 +508,23 @@ def softmax_loss_naive(
     # regularization!                                                           #
     #############################################################################
     # Replace "pass" statement with your code
+    C=W.shape[1]
+    N,D=X.shape
+    
     raw_score=X.mm(W)#(N,D)*(D,C)=(N,C) N is the number of training examples and C is the number of classes
-    CC=torch.log(raw_score.max(dim=1)[0])#(N,) tensor, prevent numerical instability
+    CC=raw_score.max(dim=1)[0]#(N,) tensor, prevent numerical instability
     adjusted_score=raw_score-CC.view(-1,1)#(N,C) tensor
-    Probability=torch.exp(adjusted_score)/torch.exp(adjusted_score).sum(dim=1).view(-1,1)#(N,C) tensor
-    right_probability=Probability[torch.arange(X.shape[0]),y]#(N,) tensor
-    loss=-torch.log(right_probability).sum()/X.shape[0]#scalar
-    right_probability_matrix=torch.ones_like(Probability)#(N,C) tensor
-    right_probability_matrix[torch.arange(X.shape[0]),y]=right_probability#(N,C) tensor
-    dW=X.t().mm(-torch.tensor(1)/right_probability_matrix*(right_probability_matrix-right_probability_matrix**2))#(D,C) tensor
-
+    probability=torch.exp(adjusted_score)/torch.exp(adjusted_score).sum(dim=1).view(-1,1)#(N,C) tensor
+    right_probability=probability[torch.arange(N),y]
+    loss=-torch.log(right_probability).sum()/N+torch.sum(W*W)*reg#scalar
+    dProb=probability.clone()#(N,C)
+    dProb[torch.arange(N),y]-=torch.tensor(1)
+    for I in range(N):
+        for c in range(C):
+            dW[:,c]+=dProb[I][c]*X[I]
+    dW/=N   
+    #regularization added
+    dW+=2*reg*W
     #############################################################################
     #                          END OF YOUR CODE                                 #
     #############################################################################
@@ -548,7 +554,21 @@ def softmax_loss_vectorized(
     # regularization!                                                           #
     #############################################################################
     # Replace "pass" statement with your code
-    pass
+    C=W.shape[1]
+    N,D=X.shape
+    
+    raw_score=X.mm(W)#(N,D)*(D,C)=(N,C) N is the number of training examples and C is the number of classes
+    CC=raw_score.max(dim=1)[0]#(N,) tensor, prevent numerical instability
+    adjusted_score=raw_score-CC.view(-1,1)#(N,C) tensor
+    probability=torch.exp(adjusted_score)/torch.exp(adjusted_score).sum(dim=1).view(-1,1)#(N,C) tensor
+    right_probability=probability[torch.arange(N),y]
+    loss=-torch.log(right_probability).sum()/N+torch.sum(W*W)*reg#scalar
+    dProb=probability.clone()#(N,C)
+    dProb[torch.arange(N),y]-=torch.tensor(1)
+    dW+=X.t().matmul(dProb)
+    dW/=N   
+    #regularization added
+    dW+=2*reg*W
     #############################################################################
     #                          END OF YOUR CODE                                 #
     #############################################################################
@@ -577,7 +597,8 @@ def softmax_get_search_params():
     # classifier.                                                             #
     ###########################################################################
     # Replace "pass" statement with your code
-    pass
+    learning_rates=[1e-3, 4e-3,7e-3, 1e-2]
+    regularization_strengths=[1e-3,4e-3,7e-3,1e-2]
     ###########################################################################
     #                           END OF YOUR CODE                              #
     ###########################################################################
