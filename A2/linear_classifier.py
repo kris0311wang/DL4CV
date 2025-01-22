@@ -225,7 +225,15 @@ def svm_loss_vectorized(
     # result in loss.                                                           #
     #############################################################################
     # Replace "pass" statement with your code
-    pass
+    Score=X.mm(W)#(N,D)*(D,C)=(N,C) N is the number of training examples and C is the number of classes
+    Correct_class_score=Score[torch.arange(X.shape[0]),y]#(N,) tensor
+    Margin=Score-Correct_class_score.view(-1,1)+1#(N,C) tensor
+    Margin[torch.arange(X.shape[0]),y]=0#(N,C) tensor
+    Mask=Margin>0#(N,C) tensor
+    Margin=Margin.where(Mask,0.)#(N,C) tensor
+    #print(Margin)
+    loss=torch.sum(Margin)#scalar
+    loss/=X.shape[0]#average the loss
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -240,7 +248,14 @@ def svm_loss_vectorized(
     # loss.                                                                     #
     #############################################################################
     # Replace "pass" statement with your code
-    pass
+    dW=X.t().mm(Mask.double())#(D,C) tensor
+    IdentityMask=Mask.double().sum(dim=1)#(N,)tensor
+    NegativeIdentity=torch.zeros_like(Mask).double()#(N,C) tensor
+    NegativeIdentity[torch.arange(X.shape[0]),y]=-IdentityMask#(N,C) tensor
+    #print(NegativeIdentity)
+    dW+=X.t().mm(NegativeIdentity)#(D,C) tensor
+    dW/=X.shape[0]#average the gradient
+    dW+=2*reg*W#add the regularization term
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -265,7 +280,9 @@ def sample_batch(
     # Hint: Use torch.randint to generate indices.                          #
     #########################################################################
     # Replace "pass" statement with your code
-    pass
+    index=torch.randint(0,num_train,(batch_size,))
+    X_batch=X[index]
+    y_batch=y[index]
     #########################################################################
     #                       END OF YOUR CODE                                #
     #########################################################################
@@ -333,7 +350,7 @@ def train_linear_classifier(
         # Update the weights using the gradient and the learning rate.          #
         #########################################################################
         # Replace "pass" statement with your code
-        pass
+        W-=learning_rate*grad
         #########################################################################
         #                       END OF YOUR CODE                                #
         #########################################################################
@@ -364,7 +381,7 @@ def predict_linear_classifier(W: torch.Tensor, X: torch.Tensor):
     # Implement this method. Store the predicted labels in y_pred.            #
     ###########################################################################
     # Replace "pass" statement with your code
-    pass
+    y_pred=torch.argmax(X.mm(W),dim=1)
     ###########################################################################
     #                           END OF YOUR CODE                              #
     ###########################################################################
@@ -390,7 +407,8 @@ def svm_get_search_params():
     # TODO:   add your own hyper parameter lists.                             #
     ###########################################################################
     # Replace "pass" statement with your code
-    pass
+    learning_rates=[1e-3, 4e-3,7e-3, 1e-2]
+    regularization_strengths=[1e-3,4e-3,7e-3,1e-2]
     ###########################################################################
     #                           END OF YOUR CODE                              #
     ###########################################################################
@@ -439,10 +457,12 @@ def test_one_param_set(
     ###########################################################################
     # Feel free to uncomment this, at the very beginning,
     # and don't forget to remove this line before submitting your final version
-    # num_iters = 100
-
+    cls.train(data_dict['X_train'], data_dict['y_train'], lr, reg, num_iters)
+    y_train_pred = cls.predict(data_dict['X_train'])
+    train_acc = 100.0 * (data_dict['y_train'] == y_train_pred).double().mean().item()
+    y_val_pred = cls.predict(data_dict['X_val'])
+    val_acc = 100.0 * (data_dict['y_val'] == y_val_pred).double().mean().item()
     # Replace "pass" statement with your code
-    pass
     ############################################################################
     #                            END OF YOUR CODE                              #
     ############################################################################
@@ -489,7 +509,16 @@ def softmax_loss_naive(
     # regularization!                                                           #
     #############################################################################
     # Replace "pass" statement with your code
-    pass
+    raw_score=X.mm(W)#(N,D)*(D,C)=(N,C) N is the number of training examples and C is the number of classes
+    CC=torch.log(raw_score.max(dim=1)[0])#(N,) tensor, prevent numerical instability
+    adjusted_score=raw_score-CC.view(-1,1)#(N,C) tensor
+    Probability=torch.exp(adjusted_score)/torch.exp(adjusted_score).sum(dim=1).view(-1,1)#(N,C) tensor
+    right_probability=Probability[torch.arange(X.shape[0]),y]#(N,) tensor
+    loss=-torch.log(right_probability).sum()/X.shape[0]#scalar
+    right_probability_matrix=torch.ones_like(Probability)#(N,C) tensor
+    right_probability_matrix[torch.arange(X.shape[0]),y]=right_probability#(N,C) tensor
+    dW=X.t().mm(-torch.tensor(1)/right_probability_matrix*(right_probability_matrix-right_probability_matrix**2))#(D,C) tensor
+
     #############################################################################
     #                          END OF YOUR CODE                                 #
     #############################################################################
