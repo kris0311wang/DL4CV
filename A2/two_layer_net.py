@@ -7,6 +7,7 @@ import random
 import statistics
 from linear_classifier import sample_batch
 from typing import Dict, List, Callable, Optional
+import tqdm
 
 
 def hello_two_layer_net():
@@ -147,7 +148,10 @@ def nn_forward_pass(params: Dict[str, torch.Tensor], X: torch.Tensor):
     # shape (N, C).                                                            #
     ############################################################################
     # Replace "pass" statement with your code
-    pass
+    #W1:(D,H) X:(N,D) b1:(H,) W2:(H,C) b2:(C,)
+    hidden=torch.matmul(X,W1)+b1
+    hidden[hidden<0]=0
+    scores=torch.matmul(hidden,W2)+b2
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -212,7 +216,16 @@ def nn_forward_backward(
     # (Check Numeric Stability in http://cs231n.github.io/linear-classify/).   #
     ############################################################################
     # Replace "pass" statement with your code
-    pass
+    #W1:(D,H) X:(N,D) b1:(H,) W2:(H,C) b2:(C,) y:(N,)
+    #scores:(N,C) h1:(N,H)
+    # h1=torch.matmul(X,W1)+b1
+    # h1[h1<0]=0
+    # scores=torch.matmul(h1,W2)+b2
+    stability_scores=scores-scores.max(dim=1,keepdim=True)[0]#(N,C)
+    exp_scores=torch.exp(stability_scores)#(N,C)
+    softmax_score=exp_scores/torch.sum(exp_scores,dim=1).reshape(-1,1)#(N,C)
+    true_prob=softmax_score[range(N),y]#(N,)
+    loss=-torch.sum(torch.log(true_prob))/N+reg*(torch.sum(W1*W1)+torch.sum(W2*W2))#scalar
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -226,7 +239,20 @@ def nn_forward_backward(
     # tensor of same size                                                     #
     ###########################################################################
     # Replace "pass" statement with your code
-    pass
+    grad_true_prob=-1/N/true_prob#(N,)
+    grad_scores = softmax_score.clone()  # (N,C)
+    grad_scores[range(N), y] -= 1  # (N,C)
+    grad_scores /= N  # batch sizegrad_scores=exp_scores*grad_exp_scores#(N,C)
+    grad_W2=torch.matmul(h1.t(),grad_scores)#(H,C)
+    grad_b2=torch.sum(grad_scores,dim=0)#(C,)
+    grad_h1=torch.matmul(grad_scores,W2.t())#(N,H)
+    grad_h1[h1<=0]=0
+    grad_W1=torch.matmul(X.t(),grad_h1)#(D,H)
+    grad_b1=torch.sum(grad_h1,dim=0)#(H,)
+    grads['W1']=grad_W1+2*reg*W1
+    grads['b1']=grad_b1
+    grads['W2']=grad_W2+2*reg*W2
+    grads['b2']=grad_b2
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -307,7 +333,10 @@ def nn_train(
         # stored in the grads dictionary defined above.                         #
         #########################################################################
         # Replace "pass" statement with your code
-        pass
+        params['W1']-=learning_rate*grads['W1']
+        params['b1']-=learning_rate*grads['b1']
+        params['W2']-=learning_rate*grads['W2']
+        params['b2']-=learning_rate*grads['b2']
         #########################################################################
         #                             END OF YOUR CODE                          #
         #########################################################################
@@ -365,7 +394,8 @@ def nn_predict(
     # TODO: Implement this function; it should be VERY simple!                #
     ###########################################################################
     # Replace "pass" statement with your code
-    pass
+    scores=nn_forward_pass(params,X)[0]#(N,C)
+    y_pred=torch.argmax(scores,dim=1)#(N,)
     ###########################################################################
     #                              END OF YOUR CODE                           #
     ###########################################################################
@@ -399,7 +429,10 @@ def nn_get_search_params():
     # classifier.                                                             #
     ###########################################################################
     # Replace "pass" statement with your code
-    pass
+    learning_rates = [1e-2, 1e-1,1]
+    hidden_sizes = [10,30,70,100]
+    regularization_strengths = [ 1e-2,1e-1]
+    learning_rate_decays = [0.95, 0.9]
     ###########################################################################
     #                           END OF YOUR CODE                              #
     ###########################################################################
@@ -460,7 +493,24 @@ def find_best_net(
     # automatically like we did on the previous exercises.                      #
     #############################################################################
     # Replace "pass" statement with your code
-    pass
+    X_train=data_dict['X_train']
+    y_train=data_dict['y_train']
+    X_val=data_dict['X_val']
+    y_val=data_dict['y_val']
+    learning_rates, hidden_sizes, regularization_strengths, learning_rate_decays=get_param_set_fn()
+    best_acc=0
+    for lr in learning_rates:
+        for hs in hidden_sizes:
+            for reg in regularization_strengths:
+                for lrd in learning_rate_decays:
+                    net = TwoLayerNet(X_train.shape[1], hs, 10)
+                    stat = net.train(X_train, y_train, X_val, y_val, learning_rate=lr, learning_rate_decay=lrd, reg=reg, num_iters=1000)
+                    val_acc = stat['val_acc_history'][-1]
+                    if val_acc > best_acc:
+                        best_acc = val_acc
+                        best_net = net
+                        best_stat = stat
+                        best_val_acc = val_acc
     #############################################################################
     #                               END OF YOUR CODE                            #
     #############################################################################
