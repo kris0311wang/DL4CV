@@ -18,3 +18,7 @@ For convenience, I uploaded the assignment folder to my Google Drive and run _ju
 
 - **PyTorch 101**: An introduction to Python 3 and basic PyTorch concepts and operations.
 - **KNN**: Implementation of a **K-Nearest-Neighbor** classifier using the **CIFAR-10** dataset as a benchmark.
+
+## A2 - Linear Classifier and Two-Layer Net
+- **Linear Classifier**: Implemented a linear classifier from scratch, including manual loss and gradient computation.
+- **Two-Layer Net**: Built a neural network with a hidden ReLU layer, manually implementing forward and backward propagation.
