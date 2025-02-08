@@ -1,9 +1,8 @@
-
-import math
 """
 Implements fully connected networks in PyTorch.
 WARNING: you SHOULD NOT use ".to()" or ".cuda()" in each implementation block.
 """
+import math
 import torch
 from a3_helper import softmax_loss
 from eecs598 import Solver
@@ -147,7 +146,6 @@ class ReLU(object):
 class Linear_ReLU(object):
 
     @staticmethod
-    
     def forward(x, w, b):
         """
         Convenience layer that performs an linear transform
@@ -498,7 +496,7 @@ class FullyConnectedNet(object):
             dLL_out,dW,db=Linear_ReLU.backward(dLL_out,cache[i])
           grads[W_index]=dW+2*self.reg*self.params[W_index]
           grads[b_index]=db
-        
+
         ###########################################################
         #                   END OF YOUR CODE                      #
         ###########################################################
