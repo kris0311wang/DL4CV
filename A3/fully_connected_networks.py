@@ -519,7 +519,7 @@ def create_solver_instance(data_dict, dtype, device):
     solver = None
     # Replace "pass" statement with your code
     config={
-      "learning_rate":1e-1
+      "learning_rate":1e-3
     }
     solver=Solver(model,data_dict,optim_config=config,update_rule=rmsprop,device=device)
     ##############################################################
@@ -536,8 +536,8 @@ def get_three_layer_network_params():
     weight_scale = 1e-2   # Experiment with this!
     learning_rate = 1e-4  # Experiment with this!
     # Replace "pass" statement with your code
-    learning_rate=1e-1
-    weight_scale=1
+    learning_rate=8e-2
+    weight_scale=5e-1
     ################################################################
     #                             END OF YOUR CODE                 #
     ################################################################
