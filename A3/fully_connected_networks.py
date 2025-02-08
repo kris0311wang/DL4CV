@@ -375,11 +375,11 @@ class FullyConnectedNet(object):
         # should be initialized to zero.                                      #
         #######################################################################
         # Replace "pass" statement with your code
-        for i in range(1,self.num_layers):
+        for i in range(1,self.num_layers+1):
           name="W"+str(i)#from W1 to Wn
           if i==1:
             size=[input_dim,hidden_dims[0]]#W1
-          elif i==len(hidden_dims):
+          elif i==self.num_layers:
             size=[hidden_dims[i-2],num_classes]#Wn
           else:
             size=[hidden_dims[i-2],hidden_dims[i-1]]
@@ -452,20 +452,20 @@ class FullyConnectedNet(object):
         out[0]=X
         cache={}
         W_square_sum=0
-        for i in range(1,self.num_layers):
+        for i in range(1,self.num_layers+1):
           index=str(i)
           W_index="W"+index#W1 to Wn
           b_index="b"+index#b1 to bn
           W=self.params[W_index]
           W_square_sum+=torch.sum(W**2)#regularization
           b=self.params[b_index]
-          if (i==self.num_layers-1):
+          if (i==self.num_layers):
             out[i],cache[i]=Linear.forward(out[i-1],W,b)
           else:
             out[i],cache[i]=Linear_ReLU.forward(out[i-1],W,b)
             if(self.use_dropout):
               out[i],cache["dropout"+index]=Dropout.forward(out[i],self.dropout_param)
-        scores=out[self.num_layers-1]
+        scores=out[self.num_layers]
         #################################################################
         #                      END OF YOUR CODE                         #
         #################################################################
@@ -489,11 +489,11 @@ class FullyConnectedNet(object):
         # Replace "pass" statement with your code
         loss,dLL_out=softmax_loss(scores,y)
         loss+=self.reg*W_square_sum
-        for i in range(self.num_layers-1,0,-1):
+        for i in range(self.num_layers,0,-1):
           index=str(i)
           W_index="W"+index
           b_index="b"+index
-          if i==self.num_layers-1:
+          if i==self.num_layers:
             dLL_out,dW,db=Linear.backward(dLL_out,cache[i])
           else:
             if(self.use_dropout):
