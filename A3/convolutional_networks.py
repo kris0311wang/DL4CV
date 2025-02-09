@@ -44,14 +44,25 @@ class Conv(object):
           W' = 1 + (W + 2 * pad - WW) / stride
         - cache: (x, w, b, conv_param)
         """
-        out = None
+        
         ####################################################################
         # TODO: Implement the convolutional forward pass.                  #
         # Hint: you can use function torch.nn.functional.pad for padding.  #
         # You are NOT allowed to use anything in torch.nn in other places. #
         ####################################################################
         # Replace "pass" statement with your code
-        pass
+        F,C,HH,WW=w.shape
+        N,C,H,W=x.shape
+        pad=conv_param['pad']
+        stride=conv_param['stride']
+        padded=torch.nn.functional.pad(x,pad=(pad,pad,pad,pad),mode='constant',value=0,)#(N,C,H+2*pad,W+2*pad)
+        H_out=(1+(H+2*pad-HH)//stride)
+        W_out=(1+(W+2*pad-WW)//stride)
+        out=torch.zeros([N,F,H_out,W_out],dtype=x.dtype,device=x.device)
+        for f in range(F):
+            for i in range(H_out):
+                for j in range(W_out):
+                    out[:,f,i,j]=torch.sum(padded[:,:,i*stride:i*stride+HH,j*stride:j*stride+WW]*w[f],dim=(1,2,3))+b[f]
         #####################################################################
         #                          END OF YOUR CODE                         #
         #####################################################################
@@ -63,20 +74,36 @@ class Conv(object):
         """
         A naive implementation of the backward pass for a convolutional layer.
           Inputs:
-        - dout: Upstream derivatives.
+        - dout: Upstream derivatives.(N,F,H',W')
         - cache: A tuple of (x, w, b, conv_param) as in conv_forward_naive
 
         Returns a tuple of:
-        - dx: Gradient with respect to x
-        - dw: Gradient with respect to w
-        - db: Gradient with respect to b
+        - dx: Gradient with respect to x(N,C,H,W)
+        - dw: Gradient with respect to w(F,C,HH,WW)
+        - db: Gradient with respect to b(F,)
         """
         dx, dw, db = None, None, None
         ###############################################################
         # TODO: Implement the convolutional backward pass.            #
         ###############################################################
         # Replace "pass" statement with your code
-        pass
+        x, w, b, conv_param = cache
+        N, F, H_out, W_out = dout.shape
+        N, C, H, W = x.shape
+        F, C, HH, WW = w.shape
+        pad = conv_param['pad']
+        stride = conv_param['stride']
+        dx,dw,db=torch.zeros_like(x),torch.zeros_like(w),torch.zeros_like(b)
+        padded=torch.nn.functional.pad(x,pad=(pad,pad,pad,pad),mode='constant',value=0,)#(N,C,H+2*pad,W+2*pad)
+        dpadded=torch.zeros_like(padded)
+        db=dout.sum(dim=(0,2,3))
+        for f in range(F):
+            for i in range(H_out):
+                for j in range(W_out):
+                    for n in range(N):
+                        dpadded[n, :, i*stride:i*stride+HH,j*stride:j*stride+WW]+=dout[n,f,i,j]*w[f]
+                        dw[f]+=dout[n,f,i,j]*padded[n,:,i*stride:i*stride+HH,j*stride:j*stride+WW]
+        dx=dpadded[:,:,pad:H+pad,pad:W+pad]
         ###############################################################
         #                       END OF YOUR CODE                      #
         ###############################################################
@@ -109,7 +136,16 @@ class MaxPool(object):
         # TODO: Implement the max-pooling forward pass                     #
         ####################################################################
         # Replace "pass" statement with your code
-        pass
+        N,C,H,W=x.shape
+        pool_height=pool_param['pool_height']
+        pool_width=pool_param['pool_width']
+        stride=pool_param['stride']
+        H_out=(H-pool_height)//stride+1
+        W_out=(W-pool_width)//stride+1
+        out=torch.zeros([N,C,H_out,W_out],dtype=x.dtype,device=x.device)
+        for i in range(H_out):
+            for j in range(W_out):
+                out[:, :, i, j] = x[:, :, i * stride:i * stride + pool_height, j * stride:j * stride + pool_width].amax(dim=(2, 3))
         ####################################################################
         #                         END OF YOUR CODE                         #
         ####################################################################
@@ -131,7 +167,19 @@ class MaxPool(object):
         # TODO: Implement the max-pooling backward pass                     #
         #####################################################################
         # Replace "pass" statement with your code
-        pass
+        x, pool_param = cache
+        dx=torch.zeros_like(x)
+        N,C,H,W=x.shape
+        N,C,H_out,W_out=dout.shape
+        pool_height=pool_param['pool_height']
+        pool_width=pool_param['pool_width']
+        stride=pool_param['stride']
+        for i in range(H_out):
+            for j in range(W_out):
+                for n in range(N):
+                    for c in range(C):
+                        x_pool=x[n,c,i*stride:i*stride+pool_height,j*stride:j*stride+pool_width]
+                        dx[n,c,i*stride:i*stride+pool_height,j*stride:j*stride+pool_width]+=(x_pool==x_pool.amax()).float()*dout[n,c,i,j]
         ####################################################################
         #                          END OF YOUR CODE                        #
         ####################################################################
@@ -194,7 +242,20 @@ class ThreeLayerConvNet(object):
         # look at the start of the loss() function to see how that happens.  #
         ######################################################################
         # Replace "pass" statement with your code
-        pass
+        self.params["W1"]=torch.normal(mean=0,std=weight_scale,size=(num_filters,input_dims[0],filter_size,filter_size),dtype=dtype,device=device)
+        self.params["b1"]=torch.zeros(num_filters,dtype=dtype,device=device)
+        pad=(filter_size-1)//2
+        stride=1
+        H_conv_out=(input_dims[1]+2*pad-filter_size)//stride+1
+        W_conv_out=(input_dims[2]+2*pad-filter_size)//stride+1
+        #pooling will reduce the size by half!
+        H_pool_out=H_conv_out//2
+        W_pool_out=W_conv_out//2
+        W2_in=num_filters*H_pool_out*W_pool_out
+        self.params["W2"]=torch.normal(mean=0,std=weight_scale,size=(W2_in,hidden_dim),dtype=dtype,device=device)
+        self.params["b2"]=torch.zeros(hidden_dim,dtype=dtype,device=device)
+        self.params["W3"]=torch.normal(mean=0,std=weight_scale,size=(hidden_dim,num_classes),dtype=dtype,device=device)
+        self.params["b3"]=torch.zeros(num_classes,dtype=dtype,device=device)
         ######################################################################
         #                            END OF YOUR CODE                        #
         ######################################################################
@@ -243,7 +304,10 @@ class ThreeLayerConvNet(object):
         # above                                                              #
         ######################################################################
         # Replace "pass" statement with your code
-        pass
+        caches={}
+        H1,caches[1]=Conv_ReLU_Pool.forward(x=X,w=W1,b=b1,conv_param=conv_param,pool_param=pool_param)
+        H2,caches[2]=Linear_ReLU.forward(x=H1,w=W2,b=b2)
+        scores,caches[3]=Linear.forward(x=H2,w=W3,b=b3)
         ######################################################################
         #                             END OF YOUR CODE                       #
         ######################################################################
@@ -264,7 +328,17 @@ class ThreeLayerConvNet(object):
         # does not include a factor of 0.5                                 #
         ####################################################################
         # Replace "pass" statement with your code
-        pass
+        loss,dout=softmax_loss(scores,y)
+        loss+=self.reg*torch.sum(W1**2)+self.reg*torch.sum(W2**2)+self.reg*torch.sum(W3**2)
+        dout,dw3,db3=Linear.backward(dout,caches[3])
+        dout,dw2,db2=Linear_ReLU.backward(dout,caches[2])
+        dx,dw1,db1=Conv_ReLU_Pool.backward(dout,caches[1])
+        grads['W1']=dw1+self.reg*2*W1
+        grads['b1']=db1
+        grads['W2']=dw2+self.reg*2*W2
+        grads['b2']=db2
+        grads['W3']=dw3+self.reg*2*W3
+        grads['b3']=db3
         ###################################################################
         #                             END OF YOUR CODE                    #
         ###################################################################
@@ -455,7 +529,7 @@ class DeepConvNet(object):
         # layers, to simplify your implementation.              #
         #########################################################
         # Replace "pass" statement with your code
-        pass
+
         #####################################################
         #                 END OF YOUR CODE                  #
         #####################################################
