@@ -6,7 +6,6 @@ import torch
 import math
 from torch import Tensor
 
-from A3.fully_connected_networks import rmsprop
 from a3_helper import softmax_loss
 from fully_connected_networks import Linear_ReLU, Linear, Solver, adam, ReLU
 
