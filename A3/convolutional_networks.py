@@ -667,10 +667,10 @@ def create_convolutional_solver_instance(data_dict, dtype, device):
                         device='cuda',
                         batchnorm=True)
     solver = Solver(model, data_dict,
-                    num_epochs=6, batch_size=128,
+                    num_epochs=4, batch_size=128,
                     update_rule=adam,
                     optim_config={
-                        'learning_rate': 2e-3,
+                        'learning_rate': 3e-3,
                     },
                     print_every=20, device='cuda')
     #########################################################
@@ -882,15 +882,14 @@ class BatchNorm(object):
         # Don't forget to implement train and test mode separately.         #
         #####################################################################
         # Replace "pass" statement with your code
-        mode=bn_param["mode"]
-        if mode=='test':
+        if len(cache)==7:
             x, x_hat, gamma, beta, running_mean, running_var, eps = cache
             N, D = x.shape
             dx_hat=dout*gamma
             dgamma=torch.sum(dout*x_hat,dim=0)
             dbeta=torch.sum(dout,dim=0)
             dx=dx_hat/torch.sqrt(running_var+eps)
-        if mode == 'train':
+        if len(cache)==9:
             x, x_hat, gamma, beta, running_mean, running_var, eps,now_mean,now_var = cache
             N,D=x.shape
             dx_hat =dout * gamma  # Gradient of normalized output
@@ -931,25 +930,22 @@ class BatchNorm(object):
         # single 80-character line.                                       #
         ###################################################################
         # Replace "pass" statement with your code
-        mode=bn_param["mode"]
-        momentum=bn_param.get("momentum",0.9)
-        if mode=='test':
+        if len(cache)==7:
             x, x_hat, gamma, beta, running_mean, running_var, eps = cache
             N, D = x.shape
             dx_hat=dout*gamma
             dgamma=torch.sum(dout*x_hat,dim=0)
             dbeta=torch.sum(dout,dim=0)
             dx=dx_hat/torch.sqrt(running_var+eps)
-        if mode == 'train':
+        if len(cache)==9:
             x, x_hat, gamma, beta, running_mean, running_var, eps,now_mean,now_var = cache
-            N, D = x.shape
+            N,D=x.shape
             dx_hat =dout * gamma  # Gradient of normalized output
             dgamma = torch.sum(dout * x_hat, dim=0)  # Gradient with respect to gamma
             dbeta = torch.sum(dout, dim=0)  # Gradient with respect to beta
-            dnow_var=-torch.sum(dx_hat*(x-now_mean)*0.5*(now_var+eps)**(-1.5),dim=0)
-            dnow_mean=-torch.sum(dout/torch.sqrt(now_var+eps),dim=0)+ dnow_var * torch.sum(-2 * (x - now_mean), dim=0) / N
-
-            dx=dx_hat/torch.sqrt(now_var+eps)+2/N*dnow_var*(x-now_mean)+dnow_mean/N
+            dnow_mean=-torch.sum(dx_hat/torch.sqrt(now_var+eps),dim=0)
+            dnow_var=-torch.sum(dx_hat*(x-now_mean)*0.5/(now_var+eps)**(1.5),dim=0)
+            dx=dnow_mean*1/N+dnow_var*(2*x/N-2/N*now_mean)+dx_hat/torch.sqrt(now_var+eps)
         #################################################################
         #                        END OF YOUR CODE                       #
         #################################################################
