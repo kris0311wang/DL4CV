@@ -22,3 +22,7 @@ For convenience, I uploaded the assignment folder to my Google Drive and run _ju
 ## A2 - Linear Classifier and Two-Layer Net
 - **Linear Classifier**: Implemented a linear classifier from scratch, including manual loss and gradient computation.
 - **Two-Layer Net**: Built a neural network with a hidden ReLU layer, manually implementing forward and backward propagation.
+
+## A3 - Fully Connected Net and Convolutional Network
+- **Fully Connected Net**: Implemented a fully connected net, including forward and backward propagation, dropout layer, sgd, sgd_momentum, rmsprop and adam function implemented from scratch.
+- **Convolutional Network**: Built a deep convolutional neural network, including forward and backward propagation, maxpooling, batch normalization, kaiming weight initialization implemented from scratch.
