@@ -82,9 +82,10 @@ class DetectorBackboneWithFPN(nn.Module):
         # there are trainable weights inside it.
         # Add THREE lateral 1x1 conv and THREE output 3x3 conv layers.
         self.fpn_params = nn.ModuleDict()
-
         # Replace "pass" statement with your code
-        pass
+        for( key, value) in dummy_out_shapes:
+            self.fpn_params[f"lateral_{key}"] = nn.Conv2d(in_channels=value[1],out_channels=out_channels,kernel_size=[1,1],stride=1)
+            self.fpn_params[f"output_p{key[1]}"] = nn.Conv2d(in_channels=out_channels,out_channels=out_channels,kernel_size=[3,3],stride=1,padding=1)
         ######################################################################
         #                            END OF YOUR CODE                        #
         ######################################################################
@@ -109,9 +110,14 @@ class DetectorBackboneWithFPN(nn.Module):
         # (c3, c4, c5) and FPN conv layers created above.                    #
         # HINT: Use `F.interpolate` to upsample FPN features.                #
         ######################################################################
-
         # Replace "pass" statement with your code
-        pass
+        c3, c4, c5 = backbone_feats["c3"], backbone_feats["c4"], backbone_feats["c5"]
+        m5 = self.fpn_params["lateral_c5"](c5)
+        fpn_feats["p5"] = self.fpn_params["output_p5"](m5)
+        m4_merged = F.interpolate(m5,scale_factor=2,mode='nearest') + self.fpn_params["lateral_c4"](c4)
+        fpn_feats["p4"] = self.fpn_params["output_p4"](m4_merged)
+        m3_merged = F.interpolate(m4_merged,scale_factor=2,mode='nearest') + self.fpn_params["lateral_c3"](c3)
+        fpn_feats["p3"] = self.fpn_params["output_p3"](m3_merged)
         ######################################################################
         #                            END OF YOUR CODE                        #
         ######################################################################
@@ -157,7 +163,14 @@ def get_fpn_location_coords(
         # TODO: Implement logic to get location co-ordinates below.          #
         ######################################################################
         # Replace "pass" statement with your code
-        pass
+        H, W = feat_shape[2],feat_shape[3]
+        now_coords = torch.zeros((H,W,2),dtype=dtype,device=device)
+        for i in range(H):
+            for j in range(W):
+                now_coords[i,j,0] = (j+0.5)*level_stride
+                now_coords[i,j,1] = (i+0.5)*level_stride
+        now_coords = now_coords.reshape(-1,2)
+        location_coords[level_name] = now_coords
         ######################################################################
         #                             END OF YOUR CODE                       #
         ######################################################################
