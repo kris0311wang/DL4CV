@@ -13,6 +13,7 @@ from torchvision import models
 from torchvision.models import feature_extraction
 
 
+
 def hello_common():
     print("Hello from common.py!")
 
@@ -164,13 +165,17 @@ def get_fpn_location_coords(
         ######################################################################
         # Replace "pass" statement with your code
         H, W = feat_shape[2],feat_shape[3]
-        now_coords = torch.zeros((H,W,2),dtype=dtype,device=device)
-        for i in range(H):
-            for j in range(W):
-                now_coords[i,j,0] = (j+0.5)*level_stride
-                now_coords[i,j,1] = (i+0.5)*level_stride
-        now_coords = now_coords.reshape(-1,2)
-        location_coords[level_name] = now_coords
+        # Create meshgrid for this FPN level
+        x_coords = torch.arange(0.5 * level_stride, W * level_stride, level_stride,
+                                dtype=dtype, device=device)
+        y_coords = torch.arange(0.5 * level_stride, H * level_stride, level_stride,
+                                dtype=dtype, device=device)
+
+        # Create grid of coordinates
+        x_grid, y_grid = torch.meshgrid(y_coords, x_coords, indexing='ij')
+        # Stack and reshape to (H*W, 2)
+        coords = torch.stack([x_grid, y_grid], dim=-1).reshape(-1, 2)
+        location_coords[level_name] = coords
         ######################################################################
         #                             END OF YOUR CODE                       #
         ######################################################################
@@ -209,7 +214,23 @@ def nms(boxes: torch.Tensor, scores: torch.Tensor, iou_threshold: float = 0.5):
     # github.com/pytorch/vision/blob/main/torchvision/csrc/ops/cpu/nms_kernel.cpp
     #############################################################################
     # Replace "pass" statement with your code
-    pass
+    _, indices = scores.sort(stable = True, dim=0, descending=True)
+    iou_tensor = iou(boxes, boxes)
+    keep_mask = torch.ones(len(indices), dtype=torch.bool, device=boxes.device)
+
+    for i in range(len(indices)):
+        if not keep_mask[indices[i]]:
+            continue
+
+        # Get the indices of boxes that have IoU > threshold with the i-th box
+        overlapping_boxes = iou_tensor[indices[i], :] > iou_threshold
+
+        # Set the mask to False for overlapping boxes
+        keep_mask[overlapping_boxes] = False
+        keep_mask[indices[i]] = True
+
+    # Get the indices of boxes to keep
+    keep = indices[keep_mask[indices]]
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -238,3 +259,56 @@ def class_spec_nms(
     boxes_for_nms = boxes + offsets[:, None]
     keep = nms(boxes_for_nms, scores, iou_threshold)
     return keep
+
+
+def iou(boxes1: torch.Tensor, boxes2: torch.Tensor) -> torch.Tensor:
+    """
+    Compute intersection-over-union (IoU) between pairs of box tensors. Input
+    box tensors must in XYXY format.
+
+    Args:
+        boxes1: Tensor of shape `(M, 4)` giving a set of box co-ordinates.
+        boxes2: Tensor of shape `(N, 4)` giving another set of box co-ordinates.
+
+    Returns:
+        torch.Tensor
+            Tensor of shape (M, N) with `iou[i, j]` giving IoU between i-th box
+            in `boxes1` and j-th box in `boxes2`.
+    """
+
+    M, N = boxes1.shape[0], boxes2.shape[0]
+
+    # Step 1: Extract coordinates for boxes1 and boxes2
+    x1_1, y1_1, x2_1, y2_1 = boxes1[:, 0], boxes1[:, 1], boxes1[:, 2], boxes1[:, 3]
+    x1_2, y1_2, x2_2, y2_2 = boxes2[:, 0], boxes2[:, 1], boxes2[:, 2], boxes2[:, 3]
+
+    # Step 2: Compute intersection coordinates using broadcasting
+    x1_intersection = torch.max(x1_1[:, None], x1_2)  # max(x1_1, x1_2)
+    y1_intersection = torch.max(y1_1[:, None], y1_2)  # max(y1_1, y1_2)
+    x2_intersection = torch.min(x2_1[:, None], x2_2)  # min(x2_1, x2_2)
+    y2_intersection = torch.min(y2_1[:, None], y2_2)  # min(y2_1, y2_2)
+
+    # Step 3: Calculate the intersection width and height
+    intersection_width = torch.clamp(x2_intersection - x1_intersection, min=0)
+    intersection_height = torch.clamp(y2_intersection - y1_intersection, min=0)
+
+    # Step 4: Calculate the intersection area
+    intersection_area = intersection_width * intersection_height
+
+    # Step 5: Calculate the area of each box
+    area1 = (x2_1 - x1_1) * (y2_1 - y1_1)
+    area2 = (x2_2 - x1_2) * (y2_2 - y1_2)
+
+    # Step 6: Calculate the union area
+    union_area = area1[:, None] + area2 - intersection_area
+
+    # Step 7: Calculate IoU
+    iou = intersection_area / (union_area + 1e-8)
+
+    return iou
+
+
+import torch
+import torchvision
+import numpy as np
+
